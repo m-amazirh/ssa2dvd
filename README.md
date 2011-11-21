@@ -24,7 +24,7 @@ $ ssa2dvd -s subtitle_file -w video_width -h video height -o output_directory
 * output_directory : Where to put the pngs and the xml file.
 
 ##Example
-Suppose we have a MPEG file `test.mpg` and a SSA/ASS subtitle `sub.ssa`.
+Suppose we have a NTSC MPEG file `test.mpg` ( with a width of 720 and height of 480 for example ), and a SSA/ASS subtitle `sub.ssa`.
 
 ```bash
 $ mkdir ~/out
@@ -33,7 +33,7 @@ $ cd ~/out
 $ spumux -m dvd dvd_sub.xml < /path/to/test.mpg > test_with_sub.mpg
 ```
 
-You can use then `test_with_sub.mpg` with `dvdauthor` to produce a DVD that you can watch on TV.
+You can then use `test_with_sub.mpg` with `dvdauthor` to produce a DVD that you can watch on TV.
 
 
 
