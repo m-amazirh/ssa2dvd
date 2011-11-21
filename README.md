@@ -24,7 +24,7 @@ $ ssa2dvd -s subtitle_file -w video_width -h video height -o output_directory
 * output_directory : Where to put the pngs and the xml file.
 
 ##Example
-Suppose we have a NTSC MPEG file `test.mpg` ( with a width of 720 and a height of 480 for example ), and a SSA/ASS subtitle `sub.ssa`.
+With a NTSC MPEG file `test.mpg` ( with a width of 720 and a height of 480 for example ), and a SSA/ASS subtitle `sub.ssa`, you can generate a MPEG file with subtitles, by doing something similar to this :
 
 ```bash
 $ mkdir ~/out
