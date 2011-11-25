@@ -26,7 +26,7 @@ void subpicture_init(subpicture * s, int id, int w, int h, long long start)
     gdImageFill(s->canvas, 0, 0, background_color);
 }
 
-void subpicture_blend_images(subpicture * s, ASS_Image * images)
+void subpicture_draw_subtitles(subpicture * s, ASS_Image * images)
 {
     ASS_Image *frame = NULL;
     assert(images != NULL);
@@ -173,34 +173,6 @@ void subpicture_save(subpicture * s, FILE * out)
 {
     assert(out != NULL);
     gdImagePng(s->canvas, out);
-}
-
-int subpicture_detect_background_color(subpicture * s, int palette_count)
-{
-    int *color_frequency = (int *) calloc(palette_count, sizeof(int));
-    int max_frequency_index = 0;
-    int x, y;
-
-    for (x = 0; x < s->canvas_w; x++) {
-        for (y = 0; y < s->canvas_h; y++) {
-
-            int color = gdImagePalettePixel(s->canvas, x, y);
-            color_frequency[color]++;
-        }
-    }
-
-    for (x = 0; x < palette_count; x++) {
-        if (color_frequency[max_frequency_index] < color_frequency[x])
-            max_frequency_index = x;
-    }
-
-    int red = gdImageRed(s->canvas, max_frequency_index);
-    int blue = gdImageBlue(s->canvas, max_frequency_index);
-    int green = gdImageGreen(s->canvas, max_frequency_index);
-
-    free(color_frequency);
-
-    return max_frequency_index;
 }
 
 void subpicture_append_info_to_xml(subpicture * s, char *image_filename,

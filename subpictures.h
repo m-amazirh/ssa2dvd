@@ -9,20 +9,18 @@
 
 typedef struct _subpicture
 {
-    long long start;
-    long long end;
-    /*size of the canvas representing the subpicture */
-    int canvas_w;
-    int canvas_h;
-    gdImagePtr canvas;
+    long long start;/* time position when this subpicture is first displayed*/
+    long long end;/* time position when this subpicture is hidden*/
+    int canvas_w;/*canvas width*/
+    int canvas_h;/*canvas height*/
+    gdImagePtr canvas;/*canvas used to draw subtitles*/
 
     int id;
 } subpicture;
 
 subpicture *subpicture_new();
 void subpicture_free(subpicture * s);
-void subpicture_blend_images(subpicture * s, ASS_Image * images);
-int subpicture_detect_background_color(subpicture * s, int palette_count);
+void subpicture_draw_subtitles(subpicture * s, ASS_Image * images);
 void subpicture_remap_colors(subpicture * s, int *colors, int colors_count);
 void subpicture_prepare_for_save(subpicture * s);
 void subpicture_save(subpicture * s, FILE * out);
