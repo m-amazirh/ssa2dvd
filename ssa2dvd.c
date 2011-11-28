@@ -249,7 +249,7 @@ int main(int argc, char **argv)
                     printf_and_quit("Couldn't save subpicture %i to %s\n",
                                     current_subpicture->id, image_path);
 
-                subpicture_prepare_for_save(current_subpicture);
+                subpicture_remap_colors(current_subpicture);
                 subpicture_save(current_subpicture, out);
                 subpicture_append_info_to_xml(current_subpicture,
                                               image_filename, xml_out);
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
                 current_subpicture = subpicture_new();
                 subpicture_init(current_subpicture, ++id, st.subpicture_width,
                                 st.subpicture_height, pos);
-                subpicture_blend_images(current_subpicture, images);
+                subpicture_draw_subtitles(current_subpicture, images);
             }
         }
     }

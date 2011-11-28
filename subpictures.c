@@ -81,91 +81,110 @@ void subpicture_draw_subtitles(subpicture * s, ASS_Image * images)
     }
 }
 
-void subpicture_remap_colors(subpicture * s, int *colors, int colors_count)
+void subpicture_remap_colors(subpicture * s)
 {
     int x, y, i, j, color;
-    int new_colors[4];
-
-    assert(colors != NULL && s != NULL);
-
-    gdImagePtr new_canvas = gdImageCreate(s->canvas_w, s->canvas_h);
-
-    new_colors[0] = gdImageColorAllocate(new_canvas, 0, 0, 0);
-    new_colors[1] = gdImageColorAllocate(new_canvas, 255, 255, 255);
-    new_colors[2] = gdImageColorAllocate(new_canvas, 127, 127, 127);
-    new_colors[3] = gdImageColorAllocate(new_canvas, 90, 90, 90);
-
-    for (x = 0; x < s->canvas_w; x++) {
-        for (y = 0; y < s->canvas_h; y++) {
-            color = gdImagePalettePixel(s->canvas, x, y);
-
-            assert(i < 4);
-            for (i = 0; color != colors[i]; i++)
-	      ;
-	    
-            gdImageSetPixel(new_canvas, x, y, new_colors[i]);
-        }
-    }
-
-    gdImageColorTransparent(new_canvas, new_colors[0]);
-    gdImageDestroy(s->canvas);
-    s->canvas = new_canvas;
-}
-
-void subpicture_prepare_for_save(subpicture * s)
-{
-    int new_colors[4];
-    int *colors;
-    int *colors_frequencies;
-    int color, colors_count;
-    int x, y, i, j, tmp;
+    int *current_palette = NULL; /* Most used color first, lest used color last 
+                                    (see subpicture_get_palette)*/
+    int current_palette_size = 0;
+    int new_palette[4];
 
     assert(s != NULL);
 
-    gdImageTrueColorToPalette(s->canvas, 1, 4);
+    gdImagePtr new_canvas = gdImageCreate(s->canvas_w, s->canvas_h);
 
-    colors_count = gdImageColorsTotal(s->canvas);
-    assert(colors_count <= 4);
+    new_palette[0] = gdImageColorAllocate(new_canvas, 0, 0, 0);
+    new_palette[1] = gdImageColorAllocate(new_canvas, 255, 255, 255);
+    new_palette[2] = gdImageColorAllocate(new_canvas, 127, 127, 127);
+    new_palette[3] = gdImageColorAllocate(new_canvas, 90, 90, 90);
 
-    colors = (int *) calloc(colors_count, sizeof(int));
-    colors_frequencies = (int *) calloc(colors_count, sizeof(int));
+    subpicture_reduce_colors(s, 4);
+    subpicture_get_palette(s, &current_palette, &current_palette_size);
 
-    for (i = 0; i < colors_count; i++)
-        colors[i] = -1;
+    assert(current_palette_size <= 4);
+    
+    for (x = 0; x < s->canvas_w; x++) {
+        for (y = 0; y < s->canvas_h; y++) {
+            color = gdImagePalettePixel(s->canvas, x, y);
+
+            for (i = 0; color != current_palette[i]; i++)
+                ;
+
+            assert(i < 4);
+
+            gdImageSetPixel(new_canvas, x, y, new_palette[i]);
+        }
+    }
+
+    gdImageColorTransparent(new_canvas, new_palette[0]);
+    gdImageDestroy(s->canvas);
+    s->canvas = new_canvas;
+
+    free(current_palette);
+}
+
+int subpicture_reduce_colors(subpicture *s, int new_palette_size)
+{
+    int palette_size;
+    assert(s != NULL);
+
+    gdImageTrueColorToPalette(s->canvas, 1, new_palette_size);
+
+    palette_size = gdImageColorsTotal(s->canvas);
+
+    return palette_size;
+}
+
+void subpicture_get_palette(subpicture *s, int **palette, int *palette_size)
+{
+    int x, y, i, j, color, tmp;
+    int *colors_frequencies = NULL;
+    int *p = NULL;
+    int p_size ;
+
+
+    p_size = gdImageColorsTotal(s->canvas);
+    p = (int *) calloc(p_size, sizeof(int));
+
+    colors_frequencies = (int *) calloc(p_size, sizeof(int));
+
+    for (i = 0; i < p_size; i++){
+        p[i] = -1;
+    }
 
     for (x = 0; x < s->canvas_w; x++) {
         for (y = 0; y < s->canvas_h; y++) {
             color = gdImagePalettePixel(s->canvas, x, y);
 
-            for (i = 0; colors[i] != color && colors[i] != -1; i++)
-	      ;
+            for (i = 0; p[i] != color && p[i] != -1; i++){
 
-            assert(i < colors_count);
+            }
 
-            if (colors[i] == -1)
-                colors[i] = color;
+            assert(i < p_size);
+
+            if (p[i] == -1)
+                p[i] = color;
 
             colors_frequencies[i]++;
         }
     }
 
-    for (i = 0; i < colors_count; i++) {
-        for (j = i; j < colors_count; j++) {
+    for (i = 0; i < p_size; i++) {
+        for (j = i; j < p_size; j++) {
             if (colors_frequencies[i] < colors_frequencies[j]) {
                 tmp = colors_frequencies[i];
                 colors_frequencies[i] = colors_frequencies[j];
                 colors_frequencies[j] = tmp;
 
-                tmp = colors[i];
-                colors[i] = colors[j];
-                colors[j] = tmp;
+                tmp = p[i];
+                p[i] = p[j];
+                p[j] = tmp;
             }
         }
     }
 
-    subpicture_remap_colors(s, colors, colors_count);
-
-    free(colors);
+    *palette = p;
+    *palette_size = p_size;
     free(colors_frequencies);
 }
 
@@ -201,29 +220,4 @@ char *long2time(long long l)
             seconds % 60, millis / 10);
 
     return time;
-}
-
-int max_int(int x, int y)
-{
-    return x > y ? x : y;
-}
-
-int min_int(int x, int y)
-{
-    return x < y ? x : y;
-}
-
-int max_in_range(int *arr, int inf, int sup)
-{
-    int i;
-    int max = 0;
-    int max_index = -1;
-    for (i = inf; i <= sup; i++) {
-        if (max < arr[i]) {
-            max = arr[i];
-            max_index = i;
-        }
-
-    }
-    return max_index;
 }
