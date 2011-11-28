@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <getopt.h>
 #include <ass/ass.h>
 #include "subpictures.h"
+
+#define PROGRAM_NAME "ssa2dvd"
 
 typedef struct _settings
 {
@@ -33,7 +36,7 @@ void usage(char *program_name)
 
 settings process_arguments(char **argv, char argc)
 {
-    int i;
+    int c,arg_len,option_index;
 
     settings s = { -1,
         -1,
@@ -46,77 +49,55 @@ settings process_arguments(char **argv, char argc)
         "dvd_sub"
     };
 
-    for (i = 1; i + 1 < argc; i += 2) {
-        char *option = argv[i];
-        char *value = argv[i + 1];
-        int value_len = strlen(value);
+    struct option longopts[] = {
+        { "subtitles", required_argument, NULL, 's' },
+        { "video-width", required_argument, NULL, 'w' },
+        { "video-height", required_argument, NULL, 'h' },
+        { "right-margin", required_argument, NULL, 'r' },
+        { "left-margin", required_argument, NULL, 'l' },
+        { "output-directory", required_argument, NULL, 'o' },
+        { NULL, 0, NULL, 0 }
+    };
 
-        if (strlen(option) != 2 || option[0] != '-') {
-            printf("%s isn't a valid option\n", argv[i]);
-            usage(argv[0]);
-            exit(1);
+
+    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:",longopts,&option_index)) != -1){
+
+        switch (c){
+            case 'w' :
+                s.subpicture_width = atoi(optarg);
+                break;
+            case 'h' :
+                s.subpicture_height = atoi(optarg);
+                break;
+            case 'r' :
+                s.right_margin = atoi(optarg);
+                break;
+            case 'l' :
+                s.left_margin = atoi(optarg);
+                break;
+            case 's' :
+                arg_len = strlen(optarg);
+                s.subtitle_path = (char *) calloc(arg_len + 1, sizeof(char));
+                strcpy(s.subtitle_path, optarg);
+                break;
+            case 'o' :
+                arg_len = strlen(optarg);
+                s.output_directory = (char *) calloc(arg_len + 1, sizeof(char));
+                strcpy(s.output_directory, optarg);
+                break;
+
+            case '?':
+            default :
+                usage(PROGRAM_NAME);
+                exit(1);
         }
 
-        switch (option[1]) {
-        case 'w':
-            s.subpicture_width = atoi(value);
-            break;
-
-        case 'h':
-            s.subpicture_height = atoi(value);
-            break;
-
-        case 'r':
-            s.right_margin = atoi(value);
-            break;
-
-        case 'l':
-            s.left_margin = atoi(value);
-            break;
-
-        case 's':
-            s.subtitle_path = (char *) calloc(value_len + 1, sizeof(char));
-            strcpy(s.subtitle_path, value);
-            break;
-
-        case 'o':
-            s.output_directory = (char *) calloc(value_len + 1, sizeof(char));
-            strcpy(s.output_directory, value);
-            break;
-
-            /*case 'n' : 
-               s.name = (char *) calloc(value_len + 1, sizeof(char));
-               strcpy(s.name,value);
-               break; */
-
-        default:
-            printf("%s isn't a valid option\n");
-            usage(argv[0]);
-            exit(1);
-
-        }
     }
 
-    if (s.subpicture_width == -1) {
-        printf("Width parameter required ( -w )\n");
-        usage(argv[0]);
-        exit(1);
-    }
-    if (s.subpicture_height == -1) {
-        printf("Height parameter required ( -h )\n");
-        usage(argv[0]);
-        exit(1);
-    }
-    if (s.subtitle_path == NULL) {
-        printf("A subtitle file is required ( -s )\n");
-        usage(argv[0]);
-        exit(1);
-    }
-    if (s.output_directory == NULL) {
-        printf("A path to an output directory is required ( -o )\n");
-        usage(argv[0]);
-        exit(1);
-    }
+    if (s.subpicture_width == -1)  { printf("Option -w is missing.\n"); usage(PROGRAM_NAME); exit(1); }
+    if (s.subpicture_height == -1) { printf("Option -h is missing.\n"); usage(PROGRAM_NAME); exit(1); }
+    if (s.subtitle_path == NULL)   { printf("Option -s is missing.\n"); usage(PROGRAM_NAME); exit(1); }
+    if (s.output_directory == NULL)  { printf("Option -o is missing.\n"); usage(PROGRAM_NAME); exit(1); }
 
     return s;
 }
