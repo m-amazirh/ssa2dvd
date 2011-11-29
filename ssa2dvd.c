@@ -162,16 +162,6 @@ long long determine_total_duration(ASS_Track * track)
     return max;
 }
 
-void printf_and_quit(const char *msg, ...)
-{
-    va_list argptr;
-
-    va_start(argptr, msg);
-    vprintf(msg, argptr);
-    va_end(argptr);
-    exit(1);
-}
-
 int main(int argc, char **argv)
 {
     ASS_Library *library = NULL;
@@ -191,9 +181,10 @@ int main(int argc, char **argv)
     renderer = init_ass_renderer(library, st);
 
     subtitles = ass_read_file(library, st.subtitle_path, "utf-8");
-    if (subtitles == NULL)
-        printf_and_quit("Couldn't load the subtitles : %s\n",
-                        st.subtitle_path);
+    if (subtitles == NULL){
+        printf("Couldn't load the subtitles : %s\n",st.subtitle_path);
+        return EXIT_FAILURE;
+    }
 
     xml_path =
         (char *) calloc(strlen(st.output_directory) + strlen(st.name) + 1 +
@@ -202,12 +193,14 @@ int main(int argc, char **argv)
 
     if (st.overwrite_files == 0 && check_file_exists(xml_path) == 0){
         printf("Can't create %s. It already exists. Use option '-f' to overwrite existing files.\n",xml_path);
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     xml_out = fopen(xml_path, "wb");
-    if (xml_out == NULL)
-        printf_and_quit("Couldn't create xml file : %s\n", xml_path);
+    if (xml_out == NULL){
+        printf("Couldn't create xml file : %s\n", xml_path);
+        return EXIT_FAILURE;
+    }
 
     free(xml_path);
 
@@ -244,14 +237,15 @@ int main(int argc, char **argv)
 
                 if (st.overwrite_files == 0 && check_file_exists(image_path) == 0){
                     printf("Can't create %s. It already exists. Try option '-f' to overwrite existing files.\n",image_path);
-                    exit(EXIT_FAILURE);
+                    return EXIT_FAILURE;
                 }
 
                 FILE *out = fopen(image_path, "wb");
 
-                if (out == NULL)
-                    printf_and_quit("Couldn't save subpicture %i to %s\n",
-                                    current_subpicture->id, image_path);
+                if (out == NULL){
+                    printf("Couldn't save subpicture %i to %s\n",current_subpicture->id, image_path);
+                    return EXIT_FAILURE;
+                }
 
                 subpicture_remap_colors(current_subpicture);
                 subpicture_save(current_subpicture, out);
@@ -283,5 +277,5 @@ int main(int argc, char **argv)
     ass_renderer_done(renderer);
     ass_library_done(library);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
