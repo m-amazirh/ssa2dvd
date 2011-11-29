@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <getopt.h>
 #include <ass/ass.h>
 #include "subpictures.h"
@@ -15,6 +16,7 @@ typedef struct _settings
     int bottom_margin;
     int right_margin;
     int left_margin;
+    int overwrite_files;
     char *subtitle_path;
     char *output_directory;
     char *name;
@@ -25,6 +27,7 @@ ASS_Renderer *init_ass_renderer(ASS_Library * library, settings s);
 long long determine_total_duration(ASS_Track * subtitles);
 void usage(char *program_name);
 settings process_arguments(char **argv, char argc);
+int check_file_exists(const char *path);
 
 void usage(char *program_name)
 {
@@ -44,6 +47,7 @@ settings process_arguments(char **argv, char argc)
         20,
         60,
         60,
+        0,
         NULL,
         NULL,
         "dvd_sub"
@@ -56,11 +60,12 @@ settings process_arguments(char **argv, char argc)
         { "right-margin", required_argument, NULL, 'r' },
         { "left-margin", required_argument, NULL, 'l' },
         { "output-directory", required_argument, NULL, 'o' },
+        { "overwrite-files", no_argument, NULL, 'o' },
         { NULL, 0, NULL, 0 }
     };
 
 
-    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:",longopts,&option_index)) != -1){
+    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:f",longopts,&option_index)) != -1){
 
         switch (c){
             case 'w' :
@@ -85,6 +90,9 @@ settings process_arguments(char **argv, char argc)
                 s.output_directory = (char *) calloc(arg_len + 1, sizeof(char));
                 strcpy(s.output_directory, optarg);
                 break;
+            case 'f' :
+                s.overwrite_files = 1;
+                break;
 
             case '?':
             default :
@@ -100,6 +108,11 @@ settings process_arguments(char **argv, char argc)
     if (s.output_directory == NULL)  { printf("Option -o is missing.\n"); usage(PROGRAM_NAME); exit(1); }
 
     return s;
+}
+
+int check_file_exists(const char *path)
+{
+    return access(path,F_OK);
 }
 
 ASS_Library *init_ass_library()
@@ -187,6 +200,11 @@ int main(int argc, char **argv)
                         4 + 1, sizeof(char));
     sprintf(xml_path, "%s/%s.xml", st.output_directory, st.name);
 
+    if (st.overwrite_files == 0 && check_file_exists(xml_path) == 0){
+        printf("Can't create %s. It already exists. Use option '-f' to overwrite existing files.\n",xml_path);
+        exit(EXIT_FAILURE);
+    }
+
     xml_out = fopen(xml_path, "wb");
     if (xml_out == NULL)
         printf_and_quit("Couldn't create xml file : %s\n", xml_path);
@@ -223,6 +241,11 @@ int main(int argc, char **argv)
                 else
                     current_subpicture->end = pos;
 
+
+                if (st.overwrite_files == 0 && check_file_exists(image_path) == 0){
+                    printf("Can't create %s. It already exists. Try option '-f' to overwrite existing files.\n",image_path);
+                    exit(EXIT_FAILURE);
+                }
 
                 FILE *out = fopen(image_path, "wb");
 
