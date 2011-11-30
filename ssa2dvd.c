@@ -16,6 +16,7 @@ typedef struct _settings
     int bottom_margin;
     int right_margin;
     int left_margin;
+    double display_aspect;
     int overwrite_files;
     char *subtitle_path;
     char *output_directory;
@@ -47,6 +48,7 @@ settings process_arguments(char **argv, char argc)
         20,
         60,
         60,
+        -1.0,
         0,
         NULL,
         NULL,
@@ -59,13 +61,14 @@ settings process_arguments(char **argv, char argc)
         { "video-height", required_argument, NULL, 'h' },
         { "right-margin", required_argument, NULL, 'r' },
         { "left-margin", required_argument, NULL, 'l' },
+        { "display-aspect", required_argument, NULL, 'a'},
         { "output-directory", required_argument, NULL, 'o' },
         { "overwrite-files", no_argument, NULL, 'o' },
         { NULL, 0, NULL, 0 }
     };
 
 
-    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:f",longopts,&option_index)) != -1){
+    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:a:f",longopts,&option_index)) != -1){
 
         switch (c){
             case 'w' :
@@ -79,6 +82,9 @@ settings process_arguments(char **argv, char argc)
                 break;
             case 'l' :
                 s.left_margin = atoi(optarg);
+                break;
+            case 'a' :
+                s.display_aspect = atof(optarg);
                 break;
             case 's' :
                 arg_len = strlen(optarg);
@@ -139,6 +145,10 @@ ASS_Renderer *init_ass_renderer(ASS_Library * library, settings s)
     }
 
     ass_set_frame_size(renderer, s.subpicture_width, s.subpicture_height);
+
+    if (s.display_aspect != -1)
+        ass_set_aspect_ratio(renderer, s.display_aspect, ((double)s.subpicture_width) / ((double)s.subpicture_height));
+
     ass_set_margins(renderer, s.top_margin, s.bottom_margin, s.left_margin,
                     s.right_margin);
 
