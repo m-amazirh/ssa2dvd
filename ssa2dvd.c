@@ -18,6 +18,7 @@ typedef struct _settings
     int left_margin;
     double display_aspect;
     int overwrite_files;
+    int opaque_subtitle_background;
     char *subtitle_path;
     char *output_directory;
     char *name;
@@ -50,6 +51,7 @@ settings process_arguments(char **argv, char argc)
         60,
         -1.0,
         0,
+        0,
         NULL,
         NULL,
         "dvd_sub"
@@ -64,11 +66,12 @@ settings process_arguments(char **argv, char argc)
         { "display-aspect", required_argument, NULL, 'a'},
         { "output-directory", required_argument, NULL, 'o' },
         { "overwrite-files", no_argument, NULL, 'o' },
+        { "opaque-subtitle-background", no_argument, NULL, 'q'},
         { NULL, 0, NULL, 0 }
     };
 
 
-    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:a:f",longopts,&option_index)) != -1){
+    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:a:fq",longopts,&option_index)) != -1){
 
         switch (c){
             case 'w' :
@@ -98,6 +101,9 @@ settings process_arguments(char **argv, char argc)
                 break;
             case 'f' :
                 s.overwrite_files = 1;
+                break;
+            case 'q' :
+                s.opaque_subtitle_background = 1;
                 break;
 
             case '?':
@@ -257,7 +263,6 @@ int main(int argc, char **argv)
                     return EXIT_FAILURE;
                 }
 
-                subpicture_remap_colors(current_subpicture);
                 subpicture_save(current_subpicture, out);
                 subpicture_append_info_to_xml(current_subpicture,
                                               image_filename, xml_out);
@@ -276,6 +281,11 @@ int main(int argc, char **argv)
                 subpicture_init(current_subpicture, ++id, st.subpicture_width,
                                 st.subpicture_height, pos);
                 subpicture_draw_subtitles(current_subpicture, images);
+                subpicture_remap_colors(current_subpicture);
+
+                if (st.opaque_subtitle_background != 0){
+                    subpicture_make_subtitles_background_opaque(current_subpicture,images);
+                }
             }
         }
     }

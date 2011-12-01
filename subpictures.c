@@ -1,5 +1,65 @@
 #include "subpictures.h"
 
+rectangle *rectangle_new()
+{
+    rectangle *r = (rectangle *) malloc(sizeof(rectangle));
+    r->next = NULL;
+    return r;
+}
+
+void rectangle_modify_coordinates(rectangle *r, int a,int b,int c,int d)
+{
+    assert(r != NULL);
+    r->x1 = a; r->y1 = b;
+    r->x2 = c; r->y2 = d;
+}
+
+int rectangle_get_width(rectangle *r)
+{
+    assert(r != NULL);
+    
+    return r->x2 - r->x1;
+}
+
+int rectangle_get_height(rectangle *r)
+{
+    assert(r != NULL);
+
+    return r->y2 - r->y1;
+}
+
+int rectangle_can_be_fitted_to_area(rectangle *r, rectangle *a)
+{
+    int a_height = rectangle_get_height(a);
+    int r_height = rectangle_get_height(r);
+
+    if ( (r->y1 + r_height) < a->y1 || (a->y1 + a_height) < r->y1){
+        return 0;
+    }
+
+    return 1;
+}
+
+void rectangle_expand_to_fit_area(rectangle *r, rectangle *a)
+{
+
+    r->x2 = a->x2;
+
+    if ( r->y1 >= a->y1 ){
+        r->y1 = a->y1;
+    }
+
+    if ( r->y2 <= a->y2){
+        r->y2 = a->y2;
+    }
+}
+
+void rectangle_free(rectangle *r)
+{
+    if(r != NULL)
+        free(r);
+}
+
 subpicture *subpicture_new()
 {
     return (subpicture *) malloc(sizeof(subpicture));
@@ -186,6 +246,67 @@ void subpicture_get_palette(subpicture *s, int **palette, int *palette_size)
     *palette = p;
     *palette_size = p_size;
     free(colors_frequencies);
+}
+
+void subpicture_make_subtitles_background_opaque(subpicture *s,ASS_Image *images)
+{
+    rectangle *first_rect = NULL;
+    rectangle *r = NULL;
+    ASS_Image *frame = NULL;
+    int subtitle_background = gdImageColorExact(s->canvas, 90, 90, 90);/* subtitle background color*/
+    int subpicture_background = gdImageColorExactAlpha(s->canvas, 0, 0, 0, gdAlphaTransparent);
+
+    for (frame = images; frame != NULL; frame = frame->next){
+        if (frame->h == 0 || frame->w == 0)
+            continue;
+
+        for (r = first_rect; r != NULL; r = r->next){
+            rectangle area;
+
+            area.x1 = frame->dst_x;
+            area.y1 = frame->dst_y;
+            area.x2 = frame->dst_x + frame->w;
+            area.y2 = frame->dst_y + frame->h;
+
+            if ( rectangle_can_be_fitted_to_area(r, &area) != 0 ){
+                rectangle_expand_to_fit_area(r,&area);
+                break;
+            }
+        }
+
+
+        if (r == NULL){
+            r = rectangle_new();
+            r->x1 = frame->dst_x;
+            r->y1 = frame->dst_y;
+            r->x2 = frame->dst_x + frame->w;
+            r->y2 = frame->dst_y + frame->h;
+
+            r->next = first_rect;
+            first_rect = r;
+        }
+    }
+
+
+    while (first_rect != NULL){
+        int x,y;
+
+        r = first_rect;
+        for (x = r->x1; x <= r->x2; x++){
+            for (y = r->y1; y <= r->y2; y++){
+                int pixel_color = gdImagePalettePixel(s->canvas, x, y);
+
+                if (pixel_color == subpicture_background ){
+                    gdImageSetPixel(s->canvas, x, y, subtitle_background);
+                }
+
+            }
+        }
+
+        first_rect = r->next;
+        rectangle_free(r);
+    }
+
 }
 
 void subpicture_save(subpicture * s, FILE * out)
