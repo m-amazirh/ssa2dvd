@@ -188,7 +188,7 @@ int subpicture_reduce_colors(subpicture *s, int new_palette_size)
     int palette_size;
     assert(s != NULL);
 
-    gdImageTrueColorToPalette(s->canvas, 1, new_palette_size);
+    gdImageTrueColorToPalette(s->canvas, 0, new_palette_size);
 
     palette_size = gdImageColorsTotal(s->canvas);
 

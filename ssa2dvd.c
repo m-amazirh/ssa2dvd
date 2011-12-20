@@ -19,6 +19,7 @@ typedef struct _settings
     double display_aspect;
     int overwrite_files;
     int opaque_subtitle_background;
+    int dont_override_styles;
     char *subtitle_path;
     char *output_directory;
     char *name;
@@ -26,6 +27,7 @@ typedef struct _settings
 
 ASS_Library *init_ass_library();
 ASS_Renderer *init_ass_renderer(ASS_Library * library, settings s);
+void override_ass_styles(ASS_Library *library,ASS_Track *track);
 long long determine_total_duration(ASS_Track * subtitles);
 void usage(char *program_name);
 settings process_arguments(char **argv, char argc);
@@ -52,6 +54,7 @@ settings process_arguments(char **argv, char argc)
         -1.0,
         0,
         0,
+        0,
         NULL,
         NULL,
         "dvd_sub"
@@ -65,8 +68,9 @@ settings process_arguments(char **argv, char argc)
         { "left-margin", required_argument, NULL, 'l' },
         { "display-aspect", required_argument, NULL, 'a'},
         { "output-directory", required_argument, NULL, 'o' },
-        { "overwrite-files", no_argument, NULL, 'o' },
+        { "overwrite-files", no_argument, NULL, 'f' },
         { "opaque-subtitle-background", no_argument, NULL, 'q'},
+        { "dont-override-styles", no_argument, NULL, 'z'},
         { NULL, 0, NULL, 0 }
     };
 
@@ -104,6 +108,9 @@ settings process_arguments(char **argv, char argc)
                 break;
             case 'q' :
                 s.opaque_subtitle_background = 1;
+                break;
+            case 'z' :
+                s.dont_override_styles = 1;
                 break;
 
             case '?':
@@ -163,6 +170,34 @@ ASS_Renderer *init_ass_renderer(ASS_Library * library, settings s)
     return renderer;
 }
 
+void override_ass_styles(ASS_Library *library,ASS_Track *track)
+{
+    assert(track != NULL);
+    int styles_count = track->n_styles;
+    int i = 0, j = 0;
+    char **styles_list = NULL;
+    char *setting_value[] = { "&H00FFFFFF", "&H000000FF", "&H00808080", "&H00000000", "1", "4", "0"};
+    char *setting_label[] = { "PrimaryColour", "SecondaryColour", "OutlineColour", "BorderStyle", "Outline", "Shadow" };
+
+    printf("Max styles allocated : %i\n",track->max_styles);
+    printf("Number styles used : %i\n", track->n_styles);
+
+    styles_list = (char **) calloc(sizeof(char *) * 7, styles_count);
+
+    for (i=0; i< styles_count; i++){
+        ASS_Style *style = &(track->styles[i]);
+        int len;
+
+        for (j=0;j<7;j++){
+            len = strlen(style->Name) + 1 + strlen(setting_label[j]) + 1 + strlen(setting_value[j]) + 1;
+            styles_list[i + j] = (char *)calloc(sizeof(char), len);
+            sprintf(styles_list[i+j], "%s.%s=%s",style->Name,setting_label[j], setting_value[j]);
+        }
+    }
+    ass_set_style_overrides(library,styles_list);
+    ass_process_force_style(track);
+}
+
 long long determine_total_duration(ASS_Track * track)
 {
     assert(track != NULL);
@@ -201,6 +236,9 @@ int main(int argc, char **argv)
         printf("Couldn't load the subtitles : %s\n",st.subtitle_path);
         return EXIT_FAILURE;
     }
+
+    if(st.dont_override_styles == 0)
+        override_ass_styles(library,subtitles);
 
     xml_path =
         (char *) calloc(strlen(st.output_directory) + strlen(st.name) + 1 +
