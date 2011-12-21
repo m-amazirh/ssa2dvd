@@ -20,6 +20,7 @@ typedef struct _settings
     int overwrite_files;
     int opaque_subtitle_background;
     int dont_override_styles;
+    double font_scale;
     char *subtitle_path;
     char *output_directory;
     char *name;
@@ -55,6 +56,7 @@ settings process_arguments(char **argv, char argc)
         0,
         0,
         0,
+        1.0,
         NULL,
         NULL,
         "dvd_sub"
@@ -71,11 +73,12 @@ settings process_arguments(char **argv, char argc)
         { "overwrite-files", no_argument, NULL, 'f' },
         { "opaque-subtitle-background", no_argument, NULL, 'q'},
         { "dont-override-styles", no_argument, NULL, 'z'},
+        { "font-scale", required_argument, NULL, 'x'},
         { NULL, 0, NULL, 0 }
     };
 
 
-    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:a:fq",longopts,&option_index)) != -1){
+    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:a:x:fq",longopts,&option_index)) != -1){
 
         switch (c){
             case 'w' :
@@ -111,6 +114,9 @@ settings process_arguments(char **argv, char argc)
                 break;
             case 'z' :
                 s.dont_override_styles = 1;
+                break;
+            case 'x' :
+                s.font_scale = atof(optarg);
                 break;
 
             case '?':
@@ -166,6 +172,7 @@ ASS_Renderer *init_ass_renderer(ASS_Library * library, settings s)
                     s.right_margin);
 
     ass_set_fonts(renderer, NULL, "Arial", 1, NULL, 1);
+    ass_set_font_scale(renderer,s.font_scale);
 
     return renderer;
 }
