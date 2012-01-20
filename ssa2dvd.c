@@ -10,6 +10,7 @@
 
 typedef struct _settings
 {
+    char *video_standard;
     int subpicture_width;
     int subpicture_height;
     int top_margin;
@@ -46,7 +47,8 @@ settings process_arguments(char **argv, char argc)
 {
     int c,arg_len,option_index;
 
-    settings s = { -1,
+    settings s = { NULL,
+        -1,
         -1,
         20,
         20,
@@ -64,6 +66,7 @@ settings process_arguments(char **argv, char argc)
 
     struct option longopts[] = {
         { "subtitles", required_argument, NULL, 's' },
+        { "video-standard", required_argument, NULL, 'S' },
         { "video-width", required_argument, NULL, 'w' },
         { "video-height", required_argument, NULL, 'h' },
         { "right-margin", required_argument, NULL, 'r' },
@@ -78,7 +81,7 @@ settings process_arguments(char **argv, char argc)
     };
 
 
-    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:a:x:fq",longopts,&option_index)) != -1){
+    while ((c = getopt_long(argc, argv, "w:h:r:l:s:o:a:x:fqS:",longopts,&option_index)) != -1){
 
         switch (c){
             case 'w' :
@@ -118,6 +121,10 @@ settings process_arguments(char **argv, char argc)
             case 'x' :
                 s.font_scale = atof(optarg);
                 break;
+            case 'S':
+                s.video_standard = (char *) calloc(strlen(optarg), sizeof(char));
+                strcpy(s.video_standard, optarg);
+                break;
 
             case '?':
             default :
@@ -125,6 +132,23 @@ settings process_arguments(char **argv, char argc)
                 exit(1);
         }
 
+    }
+    
+    if(s.video_standard == NULL){
+        /* Do nothing*/
+    }
+    else if(strcmp(s.video_standard, "ntsc") == 0) {
+        s.subpicture_width = 720;
+        s.subpicture_height = 480;
+    }
+    else if(strcmp(s.video_standard, "pal") == 0) {
+        s.subpicture_width = 720;
+        s.subpicture_height = 576;
+    }
+    else {
+        printf("Unknown video standard : %s . Try \"ntsc\" or \"pal\" instead.\n", s.video_standard);
+        usage(PROGRAM_NAME);
+        exit(EXIT_FAILURE);
     }
 
     if (s.subpicture_width == -1)  { printf("Option -w is missing.\n"); usage(PROGRAM_NAME); exit(1); }
