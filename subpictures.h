@@ -6,44 +6,45 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
-typedef struct _rectangle{
-    int x1,y1;
-    int x2,y2;
-    struct _rectangle *next;
-} rectangle;
 
-typedef struct _subpicture
+
+typedef struct _Color
 {
-    long long start;/* time position when this subpicture is first displayed*/
-    long long end;/* time position when this subpicture is hidden*/
-    int canvas_w;/*canvas width*/
-    int canvas_h;/*canvas height*/
-    gdImagePtr canvas;/*canvas used to draw subtitles*/
-    rectangle *first_rectangle;
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+} Color;
 
+typedef struct _Palette
+{
+    Color background;
+    Color foreground;
+    Color outline;
+} Palette;
+
+typedef struct _Subpicture
+{
+    long long start;
+    long long end;
+    int w;
+    int h;
+    Color *bitmap;
+    Palette palette;
     int id;
-} subpicture;
+} Subpicture;
 
-rectangle *rectangle_new();
-void rectangle_modify_coordinates(rectangle *r, int a,int b, int c,int d);
-int rectangle_get_width(rectangle *r);
-int rectangle_get_height(rectangle *r);
-int rectangle_can_be_fitted_to_area(rectangle *r, rectangle *a);
-void rectangle_expand_to_fit_area(rectangle *r,rectangle *a);
-void rectangle_free(rectangle *r);
+#include "utils.h"
 
-subpicture *subpicture_new();
-void subpicture_free(subpicture * s);
-void subpicture_draw_subtitles(subpicture * s, ASS_Image * images);
-int subpicture_reduce_colors(subpicture *s, int new_palette_size);
-void subpicture_get_palette(subpicture *s, int **palette, int *palette_size);
-void subpicture_remap_colors(subpicture * s);
-void subpicture_make_subtitles_backround_opaque(subpicture *s,ASS_Image *images);
-void subpicture_save(subpicture * s, FILE * out);
-void subpicture_append_info_to_xml(subpicture * s, char *image_filename,
+Subpicture *sp_new(int id, int w, int h, long long start, Palette *p);
+void sp_free(Subpicture * s);
+void sp_draw_subtitles(Subpicture * s, ASS_Image * images);
+void sp_reduce_colors(Subpicture *s);
+void sp_save(Subpicture * s, FILE * out);
+void sp_append_info_to_xml(Subpicture * s, char *image_filename,
                                    FILE * xml_out);
-void subpicture_init(subpicture * s, int id, int w, int h, long long start);
+int color_compare(Color *c1, Color *c2);
+void color_copy(Color *dst, Color *src);
 
-char *long2time(long long l);
 #endif
