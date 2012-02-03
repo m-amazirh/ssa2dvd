@@ -1,7 +1,7 @@
 CC=gcc
 OBJDIR=./build
 ssa2dvd: configuration.o subpictures.o utils.o libass_utils.o  ssa2dvd.o     
-	$(CC)   -g -o $(OBJDIR)/ssa2dvd $(OBJDIR)/subpictures.o $(OBJDIR)/ssa2dvd.o $(OBJDIR)/utils.o $(OBJDIR)/libass_utils.o $(OBJDIR)/configuration.o -lgd -lass
+	$(CC)   -lm -g -o $(OBJDIR)/ssa2dvd $(OBJDIR)/subpictures.o $(OBJDIR)/ssa2dvd.o $(OBJDIR)/utils.o $(OBJDIR)/libass_utils.o $(OBJDIR)/configuration.o -lgd -lass
 	
 configuration.o: configuration.c configuration.h
 	gcc -c configuration.c -o $(OBJDIR)/configuration.o

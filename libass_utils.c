@@ -41,7 +41,7 @@ void libass_override_styles(LibassConfiguration *libass_conf,ASS_Track *track, P
 {
     assert(track != NULL);
     int styles_count = track->n_styles;
-    int i = 0, j = 0;
+    int i = 0, j = 0, len = 0;
     char **styles_list = NULL;
     char *setting_value[] = { color2hex(&(palette->foreground)),
                               color2hex(&(palette->foreground)), 
@@ -55,22 +55,16 @@ void libass_override_styles(LibassConfiguration *libass_conf,ASS_Track *track, P
     printf("Max styles allocated : %i\n",track->max_styles);
     printf("Number styles used : %i\n", track->n_styles);
 
-    styles_list = (char **) calloc(sizeof(char *) * 6, styles_count);
+    styles_list = (char **) calloc(sizeof(char *) * 6, 1);
+    
 
-    for (i=0; i< styles_count; i++){
-        ASS_Style *style = &(track->styles[i]);
-        int len;
+    for (j=0;j<6;j++){
+        len = strlen(setting_label[j]) + 1 + strlen(setting_value[j]) + 1;
 
-        for (j=0;j<6;j++){
-            len = strlen(style->Name) + 1 + strlen(setting_label[j]) 
-                  + 1 + strlen(setting_value[j]) + 1;
-
-            styles_list[i + j] = (char *)calloc(sizeof(char), len);
+        styles_list[j] = (char *)calloc(sizeof(char), len);
             
-            sprintf(styles_list[i+j], "%s.%s=%s",style->Name,
-                                                 setting_label[j], 
-                                                 setting_value[j]);
-        }
+        sprintf(styles_list[j], "%s=%s",setting_label[j], 
+                                        setting_value[j]);
     }
     
     ass_set_style_overrides(libass_conf->library,styles_list);
@@ -87,3 +81,4 @@ ASS_Track *libass_load_subtitles(LibassConfiguration *libass_conf,
         exit(EXIT_FAILURE);
     }
 }
+

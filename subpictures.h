@@ -46,5 +46,7 @@ void sp_append_info_to_xml(Subpicture * s, char *image_filename,
                                    FILE * xml_out);
 int color_compare(Color *c1, Color *c2);
 void color_copy(Color *dst, Color *src);
+Color *color_of_pixel(Subpicture *s, int x, int y);
+uint32_t color_distance(Color *c1, Color *c2);
 
 #endif

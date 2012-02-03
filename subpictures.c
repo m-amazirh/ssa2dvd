@@ -1,3 +1,4 @@
+#include <math.h>
 #include "subpictures.h"
 
 Subpicture *sp_new(int id, int w, int h, long long start, Palette *p)
@@ -67,16 +68,70 @@ void sp_draw_subtitles(Subpicture * s, ASS_Image * images)
 void sp_reduce_colors(Subpicture *s)
 {
     int x,y;
+    Color origin = { 0, 0, 0 };
+    Color c1, c2, c3;
+    
+    uint32_t dist_fg = color_distance(&origin, &(s->palette.foreground));
+    uint32_t dist_bg = color_distance(&origin, &(s->palette.background));
+    uint32_t dist_ol = color_distance(&origin, &(s->palette.outline));
+    uint32_t dist_c1, dist_c2, dist_c3;
+    
+    if (dist_ol <= dist_fg) {
+        if (dist_bg <= dist_ol) {
+            c1 = s->palette.background; dist_c1 = dist_bg;
+            c2 = s->palette.outline; dist_c2 = dist_ol;
+            c3 = s->palette.foreground; dist_c3 = dist_fg;
+        } 
+        else if (dist_bg >= dist_fg) {
+            c1 = s->palette.outline; dist_c1 = dist_ol;
+            c2 = s->palette.foreground; dist_c2 = dist_fg;
+            c3 = s->palette.background; dist_c3 = dist_bg;
+        } 
+        else {
+            c1 = s->palette.outline; dist_c1 = dist_ol;
+            c2 = s->palette.background; dist_c2 = dist_bg;
+            c3 = s->palette.foreground; dist_c3 = dist_fg;
+        }
+    } 
+    else if (dist_fg <= dist_ol) {
+        if (dist_bg <= dist_fg) {
+            c1 = s->palette.background; dist_c1 = dist_bg;
+            c2 = s->palette.foreground; dist_c2 = dist_fg;
+            c3 = s->palette.outline; dist_c3 = dist_ol;
+        } 
+        else if (dist_bg >= dist_fg) {
+            c1 = s->palette.foreground; dist_c1 = dist_fg;
+            c2 = s->palette.outline; dist_c2 = dist_ol;
+            c3 = s->palette.background; dist_c3 = dist_bg;
+        } 
+        else {
+            c1 = s->palette.foreground; dist_c1 = dist_fg;
+            c2 = s->palette.background; dist_c2 = dist_bg;
+            c3 = s->palette.outline; dist_c3 = dist_ol;
+        }
+    }
     
     for(y=0; y<s->h; y++)
         for(x=0; x<s->w; x++){
             Color *color = &s->bitmap[(y*s->w) + x];
-            if( color_compare(color, &(s->palette.background)) == 0 && 
-                color_compare(color, &(s->palette.foreground)) == 0    ) {
-                    *color = s->palette.outline;
-                }
+            uint32_t dist_color = color_distance(&origin, color);
+            
+            if (dist_color < dist_c1 ||
+                    (dist_color >= dist_c1 && 
+                        dist_color < (dist_c1 + dist_c2)/2 )) {
+                *color = c1;
+            }
+            else if ((dist_color >= (dist_c1 + dist_c2)/2 && 
+                                    dist_color < dist_c2) ||
+                (dist_color >= dist_c2 && 
+                                dist_color < (dist_c2 + dist_c3)/2)) {
+                *color = c2;
+            }
+            else if (dist_color >= (dist_c2 + dist_c3)/2 ) {
+                *color = c3;
+            }
         }
-} 
+}
 
 void sp_save(Subpicture * s, FILE * out)
 {
@@ -125,3 +180,23 @@ void color_copy(Color *dst, Color *src)
     dst->green = src->green;
     dst->blue  = src->blue;
 }
+
+Color *color_of_pixel(Subpicture *s, int x, int y)
+{
+    if (x >= s->w || y >= s->h || x < 0 || y < 0)
+        return NULL;
+        
+    return &s->bitmap[ ((y * s->w) + x)];
+}
+
+uint32_t color_distance(Color *c1, Color *c2)
+{
+    Color c3;
+    
+    c3.red = abs(c1->red - c2->red);
+    c3.green = abs(c1->green - c2->green);
+    c3.blue = abs(c1->blue - c2->blue);
+    
+    return (uint32_t) sqrt(c3.red*c3.red + c3.green*c3.green + c3.blue*c3.blue);
+}
+
